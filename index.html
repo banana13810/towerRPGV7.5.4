@@ -51,7 +51,6 @@ border-radius:8px;
 .epic{color:#cc66ff}
 .legend{color:gold}
 .mythic{color:red}
-
 </style>
 
 </head>
@@ -86,7 +85,21 @@ border-radius:8px;
 
 <div>💰 <span id="gold"></span></div>
 
+<div>状態異常: <span id="status"></span></div>
+
 <button onclick="playerAttack()">⚔攻撃</button> <button onclick="toggleAuto()">🤖オート</button>
+
+<br>
+
+<label>オート優先スキル <select id="prioritySkill">
+
+<option value="0">🔥ファイア</option>
+<option value="1">❄アイス</option>
+<option value="2">⚡サンダー</option>
+<option value="3">💖ヒール</option>
+<option value="4">🛡バリア</option>
+</select>
+</label>
 
 <div id="skills"></div>
 
@@ -135,8 +148,12 @@ let enemyHP=0
 let enemyMax=0
 
 let auto=false
+let prioritySkill=2
 
 let inventory=[]
+
+let playerStatus=[]
+let enemyStatus=[]
 
 let rarity=["common","rare","epic","legend","mythic"]
 
@@ -186,9 +203,7 @@ dropItem()
 
 log("敵撃破")
 
-setTimeout(()=>{
-next()
-},200)
+setTimeout(()=>{ next() },200)
 
 }
 
@@ -250,14 +265,20 @@ log("🔥ファイア")
 if(playerMP<15)return
 playerMP-=15
 enemyHP-=attack*2
-log("❄アイス")
+if(Math.random()<0.5){
+enemyStatus.push({icon:"❄",turns:1})
+log("❄凍結")
+}
 }},
 
 {name:"⚡サンダー",cost:25,action(){
 if(playerMP<25)return
 playerMP-=25
 enemyHP-=attack*2.5
-log("⚡サンダー")
+if(Math.random()<0.5){
+enemyStatus.push({icon:"⚡",turns:2})
+log("⚡麻痺")
+}
 }},
 
 {name:"💖ヒール",cost:15,action(){
@@ -287,6 +308,7 @@ html+=`<button onclick="useSkill(${i})">${s.name}</button>`
 })
 
 document.getElementById("skills").innerHTML=html
+
 }
 
 function useSkill(i){
@@ -413,14 +435,14 @@ let a=groups[r].slice(0,3)
 
 a.reverse().forEach(i=>inventory.splice(i,1))
 
-let nextIndex=rarity.indexOf(r)+1
-if(nextIndex>=rarity.length)nextIndex=rarity.length-1
+let next=rarity.indexOf(r)+1
+if(next>=rarity.length)next=rarity.length-1
 
 inventory.push({
 atk:10,
 def:5,
 mp:5,
-rarity:rarity[nextIndex],
+rarity:rarity[next],
 level:1
 })
 
@@ -465,7 +487,20 @@ function autoBattle(){
 
 if(!auto)return
 
+let skill=skills[prioritySkill]
+
+if(playerMP>=skill.cost){
+
+skill.action()
+enemyAttack()
+
+}else{
+
 playerAttack()
+
+}
+
+update()
 
 }
 
@@ -483,9 +518,19 @@ log("💾セーブ")
 
 }
 
+document.getElementById("prioritySkill").onchange=function(){
+prioritySkill=parseInt(this.value)
+}
+
 function update(){
 
 levelUp()
+
+playerStatus.forEach(s=>s.turns--)
+playerStatus=playerStatus.filter(s=>s.turns>0)
+
+document.getElementById("status").innerText=
+playerStatus.map(s=>s.icon).join(" ")
 
 document.getElementById("floor").innerText=floor
 document.getElementById("hp").innerText=playerHP+"/"+playerMax
