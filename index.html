@@ -3,17 +3,19 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>塔RPG V2.5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>塔RPG V2.2</title>
 
 <style>
-body{background:#111;color:white;font-family:sans-serif;text-align:center;margin:0}
-.game{max-width:480px;margin:auto;padding:10px}
-.panel{background:#1b1b1b;padding:10px;margin:8px;border-radius:10px}
-.bar{width:100%;height:20px;background:#333;border-radius:10px}
-.hpbar{background:red;height:20px;border-radius:10px}
-.enemybar{background:lime;height:20px;border-radius:10px}
-button{background:#333;color:white;border:none;padding:6px;margin:3px;border-radius:6px}
-.item{background:#222;margin:5px;padding:5px;border-radius:8px}
+body{font-family:sans-serif;background:#111;color:white;text-align:center;margin:0;}
+.version{font-size:14px;color:#aaa;}
+.game{max-width:480px;margin:auto;padding:10px;}
+.panel{background:#1b1b1b;padding:10px;margin:8px 0;border-radius:10px;}
+.bar{width:100%;height:20px;background:#333;border-radius:10px;margin:5px 0;}
+.hpbar{background:red;height:20px;border-radius:10px;}
+.enemybar{background:lime;height:15px;border-radius:10px;}
+button{background:#333;color:white;border:none;margin:3px;padding:8px 12px;border-radius:6px;}
+.item{background:#222;padding:6px;margin:5px;border-radius:8px;}
 .common{color:white}
 .rare{color:#66aaff}
 .epic{color:#cc66ff}
@@ -28,7 +30,7 @@ button{background:#333;color:white;border:none;padding:6px;margin:3px;border-rad
 
 <div class="game">
 
-<h2>🏯塔RPG V2.5</h2>
+<h2>🏯塔RPG <span class="version">V2.2</span></h2>
 
 <div class="panel">
 <h3 id="enemy"></h3>
@@ -37,7 +39,8 @@ button{background:#333;color:white;border:none;padding:6px;margin:3px;border-rad
 </div>
 
 <div class="panel">
-階層 <span id="floor"></span><br>
+
+階層 <span id="floor"></span>
 
 <div class="bar"><div id="hpbar" class="hpbar"></div></div>
 
@@ -55,13 +58,14 @@ EXP <span id="exp"></span><br>
 
 <button onclick="playerAttack()">⚔攻撃</button> <button onclick="toggleAuto()">🤖オート</button>
 
-<br><br>
+<br>
 
 優先スキル <select id="prioritySkill">
 
-<option value="0">🔥ファイア</option>
-<option value="1">❄アイス</option>
-<option value="2">⚡サンダー</option>
+<option value="0">🔥</option>
+<option value="1">❄</option>
+<option value="2">⚡</option>
+<option value="3">💖</option>
 </select>
 
 <div id="skills"></div>
@@ -69,9 +73,10 @@ EXP <span id="exp"></span><br>
 </div>
 
 <div class="panel">
+
 <h3>🎒装備</h3>
 
-<button onclick="sortATK()">ATK</button> <button onclick="sortDEF()">DEF</button> <button onclick="sortMP()">MP</button>
+<button onclick="sortATK()">ATK</button> <button onclick="sortDEF()">DEF</button> <button onclick="sortMP()">MP</button> <button onclick="sortRare()">レア</button>
 
 <button onclick="combine()">🔨合成</button>
 
@@ -80,6 +85,7 @@ EXP <span id="exp"></span><br>
 </div>
 
 <div class="panel">
+
 <h3>🏪ショップ</h3>
 
 <button onclick="buyPotion()">HPポーション 20G</button> <button onclick="gacha()">装備ガチャ 100G</button>
@@ -88,16 +94,9 @@ EXP <span id="exp"></span><br>
 
 <button onclick="save()">💾セーブ</button>
 
-<div class="panel">
-<h3>⚔戦闘ログ</h3>
-<div id="log"></div>
-</div>
-
 </div>
 
 <script>
-
-/* プレイヤー */
 
 let floor=1
 let level=1
@@ -107,41 +106,26 @@ let expMax=10
 let playerMax=100
 let playerHP=100
 
-let playerMaxMP=50
 let playerMP=50
+let playerMaxMP=50
 
 let attack=5
 let defense=2
 
 let gold=100
 
-/* 敵 */
-
 let enemy=""
 let enemyHP=0
 let enemyMax=0
 
-/* システム */
-
 let auto=false
+let prioritySkill=2
+
 let inventory=[]
+
 let uraTower=false
 
 let rarity=["common","rare","epic","legend","mythic","boss"]
-
-/* ログ */
-
-let logHistory=[]
-
-function log(t){
-
-logHistory.unshift(t)
-
-if(logHistory.length>6)logHistory.pop()
-
-document.getElementById("log").innerHTML=logHistory.join("<br>")
-
-}
 
 /* 敵生成 */
 
@@ -153,20 +137,16 @@ enemy=list[Math.floor(Math.random()*list.length)]
 
 enemyMax=20+floor*5
 
+if(uraTower)enemyMax*=5
+
 if(floor%10==0){
-
 enemy="🐉ボス"
-
 enemyMax=200+floor*10
-
 }
 
 if(floor==200 && !uraTower){
-
 enemy="👑塔の支配者"
-
 enemyMax=5000
-
 }
 
 enemyHP=enemyMax
@@ -179,75 +159,28 @@ document.getElementById("enemy").innerText=enemy
 
 function playerAttack(){
 
-let dmg=attack
-
-enemyHP-=dmg
-
-log("⚔プレイヤー "+dmg)
+enemyHP-=attack
 
 playerMP+=5
 if(playerMP>playerMaxMP)playerMP=playerMaxMP
 
-battleCheck()
-
-}
-
-function enemyAttack(){
-
-if(enemyHP<=0)return
-
-let dmg=5+floor-defense
-
-if(enemy.includes("ボス")){
-
-let r=Math.random()
-
-if(r<0.3)dmg*=2
-
-if(r>0.8){
-
-enemyHP+=enemyMax*0.1
-if(enemyHP>enemyMax)enemyHP=enemyMax
-
-log("🐉ボス回復")
-
-update()
-
-return
-
-}
-
-}
-
-if(dmg<1)dmg=1
-
-playerHP-=dmg
-
-log("👾敵 "+dmg)
-
-if(playerHP<=0){
-
-alert("ゲームオーバー")
-
-location.reload()
-
-}
-
-}
-
-/* 戦闘終了 */
-
-function battleCheck(){
-
 if(enemyHP<=0){
 
-gold+=10+floor
+if(enemy=="👑塔の支配者"){
+alert("🏆塔クリア！裏の塔解放")
+uraTower=true
+floor=201
+spawnEnemy()
+update()
+return
+}
 
+gold+=10+floor
 exp+=5
 
 dropItem()
 
-setTimeout(next,300)
+setTimeout(next,200)
 
 }else{
 
@@ -259,72 +192,50 @@ update()
 
 }
 
+/* 敵攻撃 */
+
+function enemyAttack(){
+
+let dmg=5+floor-defense
+if(uraTower)dmg*=2
+if(dmg<1)dmg=1
+
+playerHP-=dmg
+
+if(playerHP<=0){
+alert("ゲームオーバー")
+location.reload()
+}
+
+}
+
 /* スキル */
 
 let skills=[
 
 {name:"🔥ファイア",cost:20,action(){
-
 if(playerMP<20)return
-
 playerMP-=20
-
-let dmg=attack*3
-
-enemyHP-=dmg
-
-log("🔥"+dmg)
-
-battleCheck()
-
+enemyHP-=attack*3
 }},
 
 {name:"❄アイス",cost:15,action(){
-
 if(playerMP<15)return
-
 playerMP-=15
-
-let dmg=attack*2
-
-enemyHP-=dmg
-
-log("❄"+dmg)
-
-battleCheck()
-
+enemyHP-=attack*2
 }},
 
 {name:"⚡サンダー",cost:25,action(){
-
 if(playerMP<25)return
-
 playerMP-=25
-
-let dmg=attack*2.5
-
-enemyHP-=dmg
-
-log("⚡"+dmg)
-
-battleCheck()
-
+enemyHP-=attack*2.5
 }},
 
 {name:"💖ヒール",cost:15,action(){
-
 if(playerMP<15)return
-
 playerMP-=15
-
 playerHP+=30
-
 if(playerHP>playerMax)playerHP=playerMax
-
-log("💖回復")
-
-update()
-
 }}
 
 ]
@@ -334,38 +245,45 @@ function drawSkills(){
 let html=""
 
 skills.forEach((s,i)=>{
-
-html+=`<button onclick="skills[${i}].action()">${s.name}</button>`
-
+html+=`<button onclick="useSkill(${i})">${s.name}</button>`
 })
 
 document.getElementById("skills").innerHTML=html
 
 }
 
-/* オートAI */
+function useSkill(i){
+
+skills[i].action()
+
+if(enemyHP<=0){
+
+gold+=10+floor
+exp+=5
+dropItem()
+setTimeout(next,200)
+
+}else{
+
+enemyAttack()
+
+}
+
+update()
+
+}
+
+/* オート */
 
 function autoBattle(){
 
 if(!auto)return
 
-let priority=Number(document.getElementById("prioritySkill").value)
+let skill=skills[prioritySkill]
 
-/* HP低い → ヒール */
+if(playerMP>=skill.cost){
 
-if(playerHP/playerMax<0.3 && playerMP>=15){
-
-skills[3].action()
-
-return
-
-}
-
-/* MP足りる → 優先スキル */
-
-if(playerMP>=skills[priority].cost){
-
-skills[priority].action()
+skill.action()
 
 }else{
 
@@ -373,18 +291,21 @@ playerAttack()
 
 }
 
+update()
+
 }
 
 setInterval(autoBattle,1000)
 
-function toggleAuto(){auto=!auto}
+function toggleAuto(){
+auto=!auto
+}
 
-/* アイテム */
+/* アイテム生成 */
 
 function createItem(r){
 
 let types=["sword","armor","ring"]
-
 let type=types[Math.floor(Math.random()*3)]
 
 let atk=Math.floor(Math.random()*20)+floor
@@ -395,19 +316,33 @@ return{type,atk,def,mp,rarity:r,level:1}
 
 }
 
+/* ドロップ */
+
 function dropItem(){
+
+let isBoss=enemy.includes("ボス")||enemy=="👑塔の支配者"
+
+if(isBoss && Math.random()<0.1){
+
+let item=createItem("boss")
+item.atk+=30
+item.def+=20
+item.mp+=30
+
+inventory.push(item)
+drawInventory()
+return
+}
 
 if(Math.random()>0.3)return
 
 let r=rarity[Math.floor(Math.random()*5)]
-
 inventory.push(createItem(r))
-
 drawInventory()
 
 }
 
-/* 装備 */
+/* 装備表示 */
 
 function drawInventory(){
 
@@ -427,6 +362,7 @@ ${icon} Lv${i.level}<br>
 ATK:${i.atk} DEF:${i.def} MP:${i.mp}
 <br>
 <button onclick="equip(${index})">装備</button>
+<button onclick="upgrade(${index})">強化</button>
 <button onclick="sell(${index})">売却</button>
 </div>
 `
@@ -436,6 +372,8 @@ ATK:${i.atk} DEF:${i.def} MP:${i.mp}
 document.getElementById("inventory").innerHTML=html
 
 }
+
+/* 装備 */
 
 function equip(i){
 
@@ -449,18 +387,47 @@ update()
 
 }
 
+/* 強化 */
+
+function upgrade(i){
+
+let item=inventory[i]
+let cost=item.level*50
+
+if(gold<cost)return
+
+gold-=cost
+
+item.level++
+item.atk+=2
+item.def+=1
+item.mp+=2
+
+drawInventory()
+update()
+
+}
+
+/* 売却 */
+
 function sell(i){
 
 let item=inventory[i]
 
-let price={common:10,rare:30,epic:80,legend:200,mythic:500,boss:1000}
+let price={
+common:10,
+rare:30,
+epic:80,
+legend:200,
+mythic:500,
+boss:1000
+}
 
 gold+=price[item.rarity]||10
 
 inventory.splice(i,1)
 
 drawInventory()
-
 update()
 
 }
@@ -472,11 +439,8 @@ function combine(){
 let groups={}
 
 inventory.forEach((i,index)=>{
-
 if(!groups[i.rarity])groups[i.rarity]=[]
-
 groups[i.rarity].push(index)
-
 })
 
 for(let r in groups){
@@ -488,6 +452,7 @@ let a=groups[r].slice(0,3)
 a.reverse().forEach(i=>inventory.splice(i,1))
 
 let next=rarity.indexOf(r)+1
+if(next>=rarity.length)next=rarity.length-1
 
 inventory.push(createItem(rarity[next]))
 
@@ -507,6 +472,16 @@ function sortATK(){inventory.sort((a,b)=>b.atk-a.atk);drawInventory()}
 function sortDEF(){inventory.sort((a,b)=>b.def-a.def);drawInventory()}
 function sortMP(){inventory.sort((a,b)=>b.mp-a.mp);drawInventory()}
 
+function sortRare(){
+
+let order={common:1,rare:2,epic:3,legend:4,mythic:5,boss:6}
+
+inventory.sort((a,b)=>order[b.rarity]-order[a.rarity])
+
+drawInventory()
+
+}
+
 /* ショップ */
 
 function buyPotion(){
@@ -516,10 +491,7 @@ if(gold<20)return
 gold-=20
 
 playerHP+=50
-
 if(playerHP>playerMax)playerHP=playerMax
-
-update()
 
 }
 
@@ -537,14 +509,12 @@ drawInventory()
 
 }
 
-/* 次階 */
+/* 次の階 */
 
 function next(){
 
 floor++
-
 spawnEnemy()
-
 update()
 
 }
@@ -556,15 +526,14 @@ function levelUp(){
 if(exp>=expMax){
 
 exp-=expMax
-
 level++
 
 expMax=Math.floor(expMax*1.4)
 
 playerMax+=20
+playerMaxMP+=10
 attack+=2
 defense+=1
-playerMaxMP+=10
 
 playerHP=playerMax
 playerMP=playerMaxMP
@@ -577,7 +546,7 @@ playerMP=playerMaxMP
 
 function save(){
 
-let data={floor,level,gold,inventory}
+let data={floor,level,exp,gold,inventory,uraTower}
 
 localStorage.setItem("towerRPG",JSON.stringify(data))
 
